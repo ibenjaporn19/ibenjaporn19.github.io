@@ -431,6 +431,11 @@ document.getElementById("regionFilter").addEventListener("change", render);
 document.getElementById("searchBox").addEventListener("input", render);
 document.getElementById("snapBtn").addEventListener("click", ()=>{
   document.getElementById("statusText").textContent = "Capturing snapshot...";
+  if(map){
+    map.invalidateSize();
+    if(lastMapPoints.length) map.fitBounds(lastMapPoints, {maxZoom:9, padding:[10,10]});
+  }
+  setTimeout(()=>{
   html2canvas(document.getElementById("page"), {backgroundColor:"#f2f4f7", useCORS:true}).then(canvas=>{
     const filename = "noc_dashboard_" + new Date().toISOString().slice(0,16).replace(/[:T]/g,"-") + ".png";
     canvas.toBlob(async (blob)=>{
@@ -452,6 +457,7 @@ document.getElementById("snapBtn").addEventListener("click", ()=>{
       document.getElementById("statusText").textContent = "Snapshot downloaded — share it in your LINE group.";
     }, "image/png");
   });
+  }, 300);
 });
 
 initCharts();

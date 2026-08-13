@@ -419,7 +419,7 @@ function initCharts(){
 }
 
 function initMap(){
-  map = L.map('map').setView([13.7,101.0], 6);
+  map = L.map('map', {renderer: L.canvas({padding: 0.5})}).setView([13.7,101.0], 6);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution:'&copy; OpenStreetMap contributors &copy; CARTO', maxZoom:19, subdomains:'abcd'
   }).addTo(map);

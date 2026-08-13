@@ -429,14 +429,45 @@ function initMap(){
 document.getElementById("refreshBtn").addEventListener("click", ()=>refresh(false));
 document.getElementById("regionFilter").addEventListener("change", render);
 document.getElementById("searchBox").addEventListener("input", render);
+function bakeLeafletTransforms(container){
+  const panes = container.querySelectorAll(".leaflet-map-pane, .leaflet-map-pane *");
+  const restore = [];
+  panes.forEach(el=>{
+    const cs = window.getComputedStyle(el);
+    const t = cs.transform;
+    if(t && t !== "none"){
+      const m = t.match(/matrix\(([^)]+)\)/) || t.match(/matrix3d\(([^)]+)\)/);
+      if(m){
+        const parts = m[1].split(",").map(parseFloat);
+        const x = t.startsWith("matrix3d") ? parts[12] : parts[4];
+        const y = t.startsWith("matrix3d") ? parts[13] : parts[5];
+        restore.push({el, transform: el.style.transform, left: el.style.left, top: el.style.top, position: el.style.position});
+        const curPos = cs.position === "static" ? "relative" : cs.position;
+        el.style.position = curPos;
+        el.style.transform = "none";
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+      }
+    }
+  });
+  return ()=> restore.forEach(r=>{
+    r.el.style.transform = r.transform;
+    r.el.style.left = r.left;
+    r.el.style.top = r.top;
+    r.el.style.position = r.position;
+  });
+}
+
 document.getElementById("snapBtn").addEventListener("click", ()=>{
   document.getElementById("statusText").textContent = "Capturing snapshot...";
   if(map){
-    map.invalidateSize();
-    if(lastMapPoints.length) map.fitBounds(lastMapPoints, {maxZoom:9, padding:[10,10]});
+    map.invalidateSize({pan:false});
+    if(lastMapPoints.length) map.fitBounds(lastMapPoints, {maxZoom:9, padding:[10,10], animate:false});
   }
   setTimeout(()=>{
+  const restoreTransforms = bakeLeafletTransforms(document.getElementById("map"));
   html2canvas(document.getElementById("page"), {backgroundColor:"#f2f4f7", useCORS:true}).then(canvas=>{
+    restoreTransforms();
     const filename = "noc_dashboard_" + new Date().toISOString().slice(0,16).replace(/[:T]/g,"-") + ".png";
     canvas.toBlob(async (blob)=>{
       const file = new File([blob], filename, {type:"image/png"});
@@ -456,6 +487,12 @@ document.getElementById("snapBtn").addEventListener("click", ()=>{
       link.click();
       document.getElementById("statusText").textContent = "Snapshot downloaded — share it in your LINE group.";
     }, "image/png");
+  }).catch(err=>{
+    restoreTransforms();
+    document.getElementById("statusText").textContent = "Snapshot failed — try again.";
+    console.error(err);
+  }).finally(()=>{
+    if(map) map.invalidateSize({pan:false});
   });
   }, 300);
 });

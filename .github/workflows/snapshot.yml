@@ -33,7 +33,7 @@ jobs:
           LINE_CHANNEL_TOKEN: ${{ secrets.LINE_CHANNEL_TOKEN }}
           LINE_GROUP_ID: ${{ secrets.LINE_GROUP_ID }}
           # EDIT these two to match your actual repo/site:
-          DASHBOARD_URL: https://YOUR_GH_USERNAME.github.io/YOUR_REPO/nano_dashboard.html
-          SNAPSHOT_PUBLIC_URL_BASE: https://raw.githubusercontent.com/YOUR_GH_USERNAME/YOUR_REPO/main
+          DASHBOARD_URL: https://ibenjaporn19.github.io/nano_dashboard.html
+          SNAPSHOT_PUBLIC_URL_BASE: https://raw.githubusercontent.com/ibenjaporn19/ibenjaporn19.github.io/main
           SHEET_JSON_URL: https://opensheet.elk.sh/1AEQSsiLUbr5p6HYh36WNGF9TkUDVeW2xN-vDvDkjy1k/1
         run: node .github/scripts/snapshot.js

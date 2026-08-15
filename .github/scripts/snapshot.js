@@ -20,7 +20,11 @@ function required(name, val) {
   if (!val) throw new Error(`Missing required env var: ${name}`);
   return val;
 }
-function fmt(v) { return (v ?? '').toString().trim(); }
+function fmt(v) {
+  if (v === null || v === undefined) return '';
+  if (v === 'None') return '';
+  return v.toString().trim();
+}
 
 async function main() {
   required('SHEET_JSON_URL', SHEET_JSON_URL);

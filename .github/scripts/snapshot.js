@@ -44,11 +44,16 @@ async function main() {
     return;
   }
 
-  // 2. Same fixed filters as the dashboard (SEVERITY in SA1-4, NN_ClusterID not blank)
+  // Same fixed filters as the dashboard (SEVERITY in SA1-4, NN_ClusterID not blank,
+  // Region restricted to South only — matches DEFAULT_REGIONS in the dashboard)
+  const DEFAULT_REGIONS = ['SOU1', 'SOU2'];
   const filtered = rows.filter(r => {
     const sev = fmt(r.SEVERITY);
     const cluster = fmt(r.NN_ClusterID);
-    return ['SA1', 'SA2', 'SA3', 'SA4'].includes(sev) && cluster !== '';
+    const region = fmt(r.Region);
+    return ['SA1', 'SA2', 'SA3', 'SA4'].includes(sev)
+      && cluster !== ''
+      && DEFAULT_REGIONS.includes(region);
   });
   const ticketCount = new Set(filtered.map(r => fmt(r.TICKETID))).size;
 

@@ -50,7 +50,7 @@ async function main() {
     const cluster = fmt(r.NN_ClusterID);
     return ['SA1', 'SA2', 'SA3', 'SA4'].includes(sev) && cluster !== '';
   });
-  const ticketCount = filtered.length;
+  const ticketCount = new Set(filtered.map(r => fmt(r.TICKETID))).size;
 
   // 3. Skip if the sheet hasn't actually refreshed since last run
   let lastInsertTime = '';

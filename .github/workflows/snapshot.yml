@@ -2,12 +2,13 @@ name: LINE Dashboard Snapshot
 
 on:
   schedule:
-    # Runs at 08:20, 10:20, 12:20, 14:20, 16:20, 18:20, 20:20 Asia/Bangkok (UTC+7)
-    # Offset by 20 min past each 2-hour mark to safely clear the sheet's
-    # worst-case insert delay (data source updates every 30 min, with up to
-    # a 15-min lag before insert_time reflects the new batch).
-    # GitHub Actions cron is always UTC, so these are 7 hours earlier.
-    - cron: '20 1,3,5,7,9,11,13 * * *'
+    # Runs every 30 min at :16 and :46 past the hour, 08:16 through 20:46
+    # Asia/Bangkok (UTC+7). Matches the data source's own 30-min update cadence
+    # (data lands at :00/:30, with up to 15 min insert delay -> ready by
+    # :15/:45), so :16/:46 clears the worst case with only ~1 min to spare,
+    # minimizing the gap between insert_time and when this actually checks it.
+    # GitHub Actions cron is always UTC, so these are 7 hours earlier: 01:16-13:46.
+    - cron: '16,46 1-13 * * *'
   workflow_dispatch: {}   # lets you trigger it manually from the Actions tab for testing
 
 permissions:
@@ -16,6 +17,7 @@ permissions:
 jobs:
   snapshot:
     runs-on: ubuntu-latest
+    timeout-minutes: 10   # fail fast instead of hanging for GitHub's default 6-hour job timeout
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -36,7 +38,7 @@ jobs:
           LINE_CHANNEL_TOKEN: ${{ secrets.LINE_CHANNEL_TOKEN }}
           LINE_GROUP_ID: ${{ secrets.LINE_GROUP_ID }}
           # EDIT these two to match your actual repo/site:
-          DASHBOARD_URL: https://ibenjaporn19.github.io/nano_dashboard.html
-          SNAPSHOT_PUBLIC_URL_BASE: https://raw.githubusercontent.com/ibenjaporn19/ibenjaporn19.github.io/main
+          DASHBOARD_URL: https://YOUR_GH_USERNAME.github.io/YOUR_REPO/nano_dashboard.html
+          SNAPSHOT_PUBLIC_URL_BASE: https://raw.githubusercontent.com/YOUR_GH_USERNAME/YOUR_REPO/main
           SHEET_JSON_URL: https://opensheet.elk.sh/1AEQSsiLUbr5p6HYh36WNGF9TkUDVeW2xN-vDvDkjy1k/1
         run: node .github/scripts/snapshot.js

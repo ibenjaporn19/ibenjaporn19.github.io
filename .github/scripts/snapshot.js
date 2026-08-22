@@ -1,3 +1,10 @@
+// Force Bangkok time for all Date parsing in this process AND in the Chromium
+// subprocess Puppeteer launches (it inherits env vars). Without this, the
+// runner's default UTC clock makes naive "YYYY-MM-DD HH:MM:SS" strings from
+// the sheet parse ~7 hours later than intended, inflating every SLA hour
+// calculation on the dashboard by ~7.
+process.env.TZ = 'Asia/Bangkok';
+
 const fetch = require('node-fetch');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
@@ -13,8 +20,11 @@ const SNAPSHOT_PUBLIC_URL_BASE = process.env.SNAPSHOT_PUBLIC_URL_BASE; // e.g. h
 const REPO_ROOT = path.join(__dirname, '..', '..');
 const STATE_FILE = path.join(REPO_ROOT, '.github', 'state', 'last_insert_time.txt');
 const SNAPSHOT_DIR = path.join(REPO_ROOT, 'snapshots');
-const SNAPSHOT_PATH = path.join(SNAPSHOT_DIR, 'latest.png');
-const SNAPSHOT_PUBLIC_URL = `${SNAPSHOT_PUBLIC_URL_BASE}/snapshots/latest.png?t=${Date.now()}`;
+
+function safeFileName(s) {
+  // e.g. "2026-08-22 12:35:31" -> "2026-08-22_12-35-31"
+  return s.replace(/[^0-9A-Za-z]/g, '-').replace(/-+/g, '-');
+}
 
 function required(name, val) {
   if (!val) throw new Error(`Missing required env var: ${name}`);
@@ -78,12 +88,16 @@ async function main() {
     saveState(insertTime);
     commitAndPush(`chore: update state (no pending tickets) [skip ci]`, [STATE_FILE]);
   } else {
-    await takeScreenshot();
+    const snapshotFileName = `snapshot-${safeFileName(insertTime)}.png`;
+    const snapshotPath = path.join(SNAPSHOT_DIR, snapshotFileName);
+    const snapshotPublicUrl = `${SNAPSHOT_PUBLIC_URL_BASE}/snapshots/${snapshotFileName}`;
+
+    await takeScreenshot(snapshotPath);
     saveState(insertTime);
-    commitAndPush(`chore: auto snapshot ${insertTime} [skip ci]`, [SNAPSHOT_PATH, STATE_FILE]);
+    commitAndPush(`chore: auto snapshot ${insertTime} [skip ci]`, [snapshotPath, STATE_FILE]);
     // give GitHub's raw content CDN a moment to pick up the just-pushed file
     await sleep(20000);
-    await sendImage();
+    await sendImage(snapshotPublicUrl);
   }
 }
 
@@ -107,7 +121,7 @@ function commitAndPush(message, files) {
   }
 }
 
-async function takeScreenshot() {
+async function takeScreenshot(snapshotPath) {
   fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
   const browser = await puppeteer.launch({
     headless: 'new',
@@ -121,8 +135,8 @@ async function takeScreenshot() {
     // let the sheet fetch + chart rendering + map tiles settle
     await sleep(4000);
     const el = await page.$('#page');
-    await el.screenshot({ path: SNAPSHOT_PATH });
-    console.log('Screenshot saved to', SNAPSHOT_PATH);
+    await el.screenshot({ path: snapshotPath });
+    console.log('Screenshot saved to', snapshotPath);
   } finally {
     await browser.close();
   }
@@ -133,13 +147,13 @@ async function sendText(text) {
   console.log('Sent text message:', text);
 }
 
-async function sendImage() {
+async function sendImage(snapshotPublicUrl) {
   await linePush([{
     type: 'image',
-    originalContentUrl: SNAPSHOT_PUBLIC_URL,
-    previewImageUrl: SNAPSHOT_PUBLIC_URL
+    originalContentUrl: snapshotPublicUrl,
+    previewImageUrl: snapshotPublicUrl
   }]);
-  console.log('Sent image message:', SNAPSHOT_PUBLIC_URL);
+  console.log('Sent image message:', snapshotPublicUrl);
 }
 
 async function linePush(messages) {

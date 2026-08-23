@@ -146,8 +146,34 @@ async function takeScreenshotAttempt(snapshotPath) {
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1300, height: 900 });
-    await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle2', timeout: 60000 });
-    await page.waitForSelector('#page', { timeout: 30000 });
+
+    const pageErrors = [];
+    page.on('pageerror', e => pageErrors.push('pageerror: ' + e.message));
+    page.on('console', msg => { if (msg.type() === 'error') pageErrors.push('console.error: ' + msg.text()); });
+    page.on('requestfailed', req => pageErrors.push('requestfailed: ' + req.url() + ' (' + (req.failure() && req.failure().errorText) + ')'));
+
+    const gotoResp = await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle2', timeout: 60000 });
+    console.log('goto status:', gotoResp && gotoResp.status(), 'url:', page.url());
+
+    try {
+      await page.waitForSelector('#page', { timeout: 30000 });
+    } catch (selectorErr) {
+      // Diagnostic dump: what did the runner actually load?
+      const title = await page.title().catch(() => '(title failed)');
+      const html = await page.content().catch(() => '(content failed)');
+      console.log('=== DIAGNOSTIC DUMP ===');
+      console.log('Final URL:', page.url());
+      console.log('Page title:', title);
+      console.log('HTML length:', html.length);
+      console.log('HTML snippet (first 1000 chars):', html.slice(0, 1000));
+      console.log('Page/console/network errors:', JSON.stringify(pageErrors, null, 2));
+      const debugPath = path.join(SNAPSHOT_DIR, 'debug-failure.png');
+      fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
+      await page.screenshot({ path: debugPath, fullPage: true }).catch(e => console.log('debug screenshot failed:', e.message));
+      console.log('=== END DIAGNOSTIC DUMP ===');
+      throw selectorErr;
+    }
+
     // let the sheet fetch + chart rendering + map tiles settle
     await sleep(4000);
     const el = await page.$('#page');

@@ -122,6 +122,22 @@ function commitAndPush(message, files) {
 }
 
 async function takeScreenshot(snapshotPath) {
+  const maxAttempts = 3;
+  let lastErr;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await takeScreenshotAttempt(snapshotPath);
+      return;
+    } catch (err) {
+      lastErr = err;
+      console.log(`Screenshot attempt ${attempt}/${maxAttempts} failed: ${err.message}`);
+      if (attempt < maxAttempts) await sleep(5000);
+    }
+  }
+  throw lastErr;
+}
+
+async function takeScreenshotAttempt(snapshotPath) {
   fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
   const browser = await puppeteer.launch({
     headless: 'new',

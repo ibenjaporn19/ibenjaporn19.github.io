@@ -42,3 +42,12 @@ jobs:
           SNAPSHOT_PUBLIC_URL_BASE: https://raw.githubusercontent.com/YOUR_GH_USERNAME/YOUR_REPO/main
           SHEET_JSON_URL: https://opensheet.elk.sh/1AEQSsiLUbr5p6HYh36WNGF9TkUDVeW2xN-vDvDkjy1k/1
         run: node .github/scripts/snapshot.js
+
+      - name: Upload debug screenshot on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-failure
+          path: snapshots/debug-failure.png
+          if-no-files-found: ignore
+          retention-days: 7

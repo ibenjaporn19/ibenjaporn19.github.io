@@ -2,13 +2,13 @@ name: LINE Dashboard Snapshot
 
 on:
   schedule:
-    # Runs every 30 min at :16 and :46 past the hour, 08:16 through 20:46
+    # Runs every hour at :16 past the hour, 08:16 through 16:16
     # Asia/Bangkok (UTC+7). Matches the data source's own 30-min update cadence
     # (data lands at :00/:30, with up to 15 min insert delay -> ready by
     # :15/:45), so :16/:46 clears the worst case with only ~1 min to spare,
     # minimizing the gap between insert_time and when this actually checks it.
     # GitHub Actions cron is always UTC, so these are 7 hours earlier: 01:16-13:46.
-    - cron: '16,46 1-13 * * *'
+    - cron: '16 2-10 * * *'
   workflow_dispatch: {}   # lets you trigger it manually from the Actions tab for testing
 
 permissions:

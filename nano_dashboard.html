@@ -159,6 +159,16 @@ function colorForAging(v){
   return "#c8313e";
 }
 
+function colorForPriority(v){
+  if(!v) return "#999";
+  const s = v.trim();
+  if(s.includes("Broadband High")) return "#0B2E63";
+  if(s.includes("CORP High")) return "#E97132";
+  if(s.includes("CORP Normal")) return "#F1A077";
+  // fallback for any category not in the fixed list above
+  return "#8C8C8C";
+}
+
 function contrastColor(hex){
   if(!hex || hex[0]!=="#") return "#fff";
   const h = hex.length===4
@@ -242,7 +252,7 @@ function render(){
   const prioCounts = aggCount("priority_pending");
 
   updatePie(agingChart, agingCounts, colorForAging);
-  updatePie(prioChart, prioCounts);
+  updatePie(prioChart, prioCounts, colorForPriority);
 
   // Tech_Status stacked by Aging_Flag_Group
   const techLabels = [...new Set(filtered.map(r=>fmt(r.Tech_Status)||"Unknown"))].sort();
@@ -420,8 +430,8 @@ function initCharts(){
 
 function initMap(){
   map = L.map('map', {renderer: L.canvas({padding: 0.5})}).setView([13.7,101.0], 6);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution:'&copy; OpenStreetMap contributors &copy; CARTO', maxZoom:19, subdomains:'abcd'
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    attribution:'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ', maxZoom:16
   }).addTo(map);
   markerLayer = L.layerGroup().addTo(map);
 }

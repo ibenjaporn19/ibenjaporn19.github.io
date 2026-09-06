@@ -194,10 +194,20 @@ function subimpactRadius(v, min, max){
   return 8;
 }
 
+function parseSheetDate(str){
+  if(!str) return null;
+  const m = String(str).trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{1,2}):(\d{1,2})$/);
+  if(!m) return null;
+  const [, y, mo, d, h, mi, s] = m;
+  const pad = n => n.padStart(2, "0");
+  const dt = new Date(`${y}-${pad(mo)}-${pad(d)}T${pad(h)}:${pad(mi)}:${pad(s)}`);
+  return isNaN(dt) ? null : dt;
+}
+
 function hoursRemaining(target){
   if(!target) return null;
-  const t = new Date(target.replace(" ","T"));
-  if(isNaN(t)) return null;
+  const t = parseSheetDate(target);
+  if(!t) return null;
   return (t.getTime() - Date.now())/3600000;
 }
 

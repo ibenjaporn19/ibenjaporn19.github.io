@@ -36,6 +36,35 @@ function fmt(v) {
   return v.toString().trim();
 }
 
+// Mirrors the dashboard's own date parsing: tolerant of non-zero-padded
+// hours (e.g. "2026-09-07 0:38:00"), which native Date parsing rejects.
+function parseSheetDate(str) {
+  if (!str) return null;
+  const m = String(str).trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{1,2}):(\d{1,2})$/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi, s] = m;
+  const pad = n => n.padStart(2, '0');
+  const dt = new Date(`${y}-${pad(mo)}-${pad(d)}T${pad(h)}:${pad(mi)}:${pad(s)}`);
+  return isNaN(dt) ? null : dt;
+}
+
+// Mirrors the dashboard's latestInsertTime: take the true max across all
+// rows rather than assuming row 0 is newest.
+function latestInsertTime(rowList) {
+  let bestStr = '', bestDate = null;
+  (rowList || []).forEach(r => {
+    const str = fmt(r.insert_time);
+    if (!str) return;
+    const d = parseSheetDate(str);
+    if (d && (!bestDate || d.getTime() > bestDate.getTime())) {
+      bestDate = d;
+      bestStr = str;
+    }
+  });
+  if (bestDate === null && rowList && rowList.length) bestStr = fmt(rowList[0].insert_time);
+  return bestStr;
+}
+
 async function main() {
   required('SHEET_JSON_URL', SHEET_JSON_URL);
   required('DASHBOARD_URL', DASHBOARD_URL);
@@ -52,9 +81,9 @@ async function main() {
     return;
   }
 
-  const insertTime = fmt(rows[0].insert_time);
+  const insertTime = latestInsertTime(rows);
   if (!insertTime) {
-    console.log('No insert_time found on first row — skipping this run.');
+    console.log('No valid insert_time found in any row — skipping this run.');
     return;
   }
 

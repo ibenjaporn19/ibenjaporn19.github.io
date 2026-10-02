@@ -204,6 +204,22 @@ function parseSheetDate(str){
   return isNaN(dt) ? null : dt;
 }
 
+function latestInsertTime(rowList){
+  let bestStr = "--", bestDate = null;
+  (rowList || []).forEach(r=>{
+    const str = fmt(r.insert_time);
+    if(!str) return;
+    const d = parseSheetDate(str);
+    if(d && (!bestDate || d.getTime() > bestDate.getTime())){
+      bestDate = d;
+      bestStr = str;
+    }
+  });
+  // fall back to raw first-row text if nothing parsed (keeps old behavior as a safety net)
+  if(bestDate === null && rowList && rowList.length) bestStr = fmt(rowList[0].insert_time) || "--";
+  return bestStr;
+}
+
 function hoursRemaining(target){
   if(!target) return null;
   const t = parseSheetDate(target);
@@ -238,7 +254,7 @@ function render(){
   });
   const overSla = filtered.filter(r => fmt(r.Aging_Flag_Group) !== "6) Within SLA").length;
 
-  const sheetInsertTime = filtered.length ? fmt(filtered[0].insert_time) : (rows.length ? fmt(rows[0].insert_time) : "--");
+  const sheetInsertTime = latestInsertTime(rows);
   document.getElementById("nowTime").textContent = sheetInsertTime || "--";
   document.getElementById("statTotal").textContent = distinctIds.size;
   document.getElementById("stat4h").textContent = within4h;
